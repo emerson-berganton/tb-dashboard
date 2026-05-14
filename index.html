@@ -272,45 +272,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
   <!-- Preenchido via JS -->
 </div>
 
-    <div class="modal-body">
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;">
-        Cole o <b style="color:var(--text)">ID publicado</b> da planilha.<br>
-        Vá em <b>Arquivo → Publicar na web → Publicar</b>.<br>
-        O ID fica na URL publicada entre <code style="background:var(--bg4);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--amber);">/d/e/</code> e <code style="background:var(--bg4);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--amber)">/pub</code>.<br>
-        Ex: <code style="background:var(--bg4);padding:2px 7px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--green);">https://docs.google.com/spreadsheets/d/e/<b>2PACX-1vR...</b>/pubhtml</code>
-      </p>
-
-      <div class="field-group">
-        <label>ID da planilha</label>
-        <input type="text" id="inputSheetId" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" />
-        <div class="hint">
-          A planilha precisa ser <b style="color:var(--text)">pública</b> (Compartilhar → "Qualquer pessoa com o link pode ver").<br>
-          Ela deve ter <b style="color:var(--text)">3 abas</b> com os nomes exatos:
-          <code>Compras</code>, <code>Cotacoes</code>, <code>Solicitacoes</code>
-        </div>
-      </div>
-
-      <div class="field-group">
-        <label>Estrutura esperada de cada aba</label>
-        <div class="col-ref">
-          <b>Aba "Compras"</b> — 1 linha por OC:<br>
-          semana | num_oc | cotacao | obra | fornecedor | data | valor | situacao | responsavel<br><br>
-          <b>Aba "Cotacoes"</b> — 1 linha por cotação:<br>
-          semana | num_cot | obra | itens | fornecedores | data | situacao<br><br>
-          <b>Aba "Solicitacoes"</b> — 1 linha por solicitação:<br>
-          semana | num_sol | obra | descricao | itens | data_sol | necessidade | situacao<br><br>
-          <b>Aba "Descontos"</b> (opcional) — 1 linha por cotação com mapa:<br>
-          semana | cotacao | obra | item | forn_venc | maior_preco | preco_venc
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-blue" onclick="baixarTemplate()">⬇ Baixar template CSV</button>
-      <button class="btn btn-green" onclick="salvarConfig()">Salvar e carregar dados</button>
-    </div>
-  </div>
-</div>
-
 <script>
 // ══════════════════════════════════════════════════════
 //  ESTADO DOS ARQUIVOS CARREGADOS
@@ -399,9 +360,11 @@ function processarDados(compras, cotacoes, solicitacoes, descontos) {
   cotacoes.forEach(r => { if (r.semana) semanasSet.add(r.semana); });
   solicitacoes.forEach(r => { if (r.semana) semanasSet.add(r.semana); });
 
-  const semanasOrdenadas = [...semanasSet].sort();
+  // Ordena cronologicamente pelo início da semana (DD/MM)
+  const parseSemana = s => { const [d, m] = s.split('-')[0].split('/'); return parseInt(m) * 100 + parseInt(d); };
+  const semanasOrdenadas = [...semanasSet].sort((a, b) => parseSemana(a) - parseSemana(b));
 
-  return semanasOrdenadas.reverse().map(sem => {
+  return semanasOrdenadas.map(sem => {
     const ocs    = compras.filter(r => r.semana === sem);
     const cots   = cotacoes.filter(r => r.semana === sem);
     const sols   = solicitacoes.filter(r => r.semana === sem);
@@ -578,21 +541,24 @@ function mostrarGuia() {
 function buildTabs() {
   const bar = document.getElementById('tabBar');
   bar.innerHTML = '';
-  SEMANAS.forEach((sm, i) => {
-    const t = document.createElement('div');
-    t.className = 'tab' + (viewAtual==='semana' && i===idxAtivo ? ' on' : '');
-    t.textContent = 'Sem.' + (SEMANAS.length - i) + ' · ' + sm.label;
-    t.onclick = () => { viewAtual='semana'; idxAtivo=i; buildTabs(); renderSemana(i); };
-    bar.appendChild(t);
-  });
+  // Consolidado primeiro
   if (SEMANAS.length > 1) {
-    const sep = document.createElement('div'); sep.className='tab-sep'; bar.appendChild(sep);
     const tc = document.createElement('div');
     tc.className = 'tab' + (viewAtual==='cons' ? ' on-c' : '');
     tc.innerHTML = '◈ Consolidado';
     tc.onclick = () => { viewAtual='cons'; buildTabs(); renderCons(); };
     bar.appendChild(tc);
+    const sep = document.createElement('div'); sep.className='tab-sep'; bar.appendChild(sep);
   }
+  // Semanas da mais recente (maior índice) para a mais antiga, Sem.1 = mais antiga
+  [...SEMANAS].reverse().forEach((sm, ri) => {
+    const i = SEMANAS.length - 1 - ri; // índice real no array SEMANAS
+    const t = document.createElement('div');
+    t.className = 'tab' + (viewAtual==='semana' && i===idxAtivo ? ' on' : '');
+    t.textContent = 'Sem.' + (i + 1) + ' · ' + sm.label;
+    t.onclick = () => { viewAtual='semana'; idxAtivo=i; buildTabs(); renderSemana(i); };
+    bar.appendChild(t);
+  });
 }
 
 // ═══════════════════════════════════════════════════
@@ -858,7 +824,7 @@ function renderSemana(idx) {
 // ═══════════════════════════════════════════════════
 function renderCons() {
   killCharts();
-  const crono = [...SEMANAS].reverse();
+  const crono = [...SEMANAS]; // já ordenado cronologicamente (mais antiga = índice 0)
   const totOC   = crono.reduce((a,s)=>a+s.totalOCs,0);
   const totDesc = crono.reduce((a,s)=>a+(s.descontos||[]).reduce((b,d)=>b+(d.maiorPreco-d.precoVenc),0),0);
   const totOrdens = crono.reduce((a,s)=>a+s.ordens,0);
