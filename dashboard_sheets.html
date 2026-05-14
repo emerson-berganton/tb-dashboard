@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Compras · TB Engenharia</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#0d0f12;--bg2:#13161b;--bg3:#1a1e25;--bg4:#21262f;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#f0f2f5;--text2:#8a939f;--text3:#5a6370;
+  --green:#2dd98f;--gdim:rgba(45,217,143,0.13);
+  --blue:#4a9eff; --bdim:rgba(74,158,255,0.13);
+  --amber:#f5a623;--adim:rgba(245,166,35,0.13);
+  --red:#ff5e5e;  --rdim:rgba(255,94,94,0.13);
+  --purple:#a78bfa;--pdim:rgba(167,139,250,0.13);
+  --teal:#2dd9c8; --tdim:rgba(45,217,200,0.13);
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;}
+
+/* ── HEADER ── */
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:12px;flex-wrap:wrap;}
+.hl{display:flex;align-items:center;gap:12px;}
+.lm{width:32px;height:32px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0;}
+.ht{font-size:14px;font-weight:500;}
+.hs{font-size:11px;color:var(--text2);margin-top:1px;}
+.hr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.pill{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:4px 11px;font-size:11px;color:var(--text2);font-family:var(--mono);}
+.pill b{color:var(--amber);}
+.btn{border:1px solid;border-radius:6px;padding:5px 14px;font-size:11px;font-family:var(--mono);font-weight:500;cursor:pointer;transition:all .15s;}
+.btn-blue{background:var(--bdim);border-color:var(--blue);color:var(--blue);}
+.btn-blue:hover{background:rgba(74,158,255,0.22);}
+.btn-green{background:var(--gdim);border-color:var(--green);color:var(--green);}
+.btn-green:hover{background:rgba(45,217,143,0.22);}
+.btn-amber{background:var(--adim);border-color:var(--amber);color:var(--amber);}
+
+/* ── CONFIG MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+.overlay.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:min(680px,95vw);max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.modal-head h2{font-size:14px;font-weight:500;}
+.modal-close{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:2px 6px;border-radius:4px;}
+.modal-close:hover{color:var(--text);background:var(--bg4);}
+.modal-body{padding:20px 22px;display:flex;flex-direction:column;gap:16px;}
+.field-group{display:flex;flex-direction:column;gap:6px;}
+.field-group label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;}
+.field-group input{background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:9px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color .15s;}
+.field-group input:focus{border-color:var(--blue);}
+.field-group .hint{font-size:11px;color:var(--text3);line-height:1.5;}
+.field-group .hint code{background:var(--bg4);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:10px;color:var(--amber);}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+
+/* ── LOADING ── */
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;}
+.spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-txt{font-size:13px;color:var(--text2);}
+.error-box{background:var(--rdim);border:1px solid var(--red);border-radius:10px;padding:18px 22px;max-width:500px;text-align:center;}
+.error-box h3{color:var(--red);margin-bottom:8px;}
+.error-box p{font-size:12px;color:var(--text2);line-height:1.6;}
+
+/* ── LAYOUT ── */
+.tabs{display:flex;align-items:center;gap:2px;background:var(--bg3);border-bottom:1px solid var(--border);padding:0 24px;overflow-x:auto;}
+.tab{padding:9px 14px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap;}
+.tab:hover{color:var(--text2);}
+.tab.on{color:var(--text);border-bottom-color:var(--blue);}
+.tab.on-c{color:var(--green);border-bottom-color:var(--green);}
+.tab-sep{width:1px;height:14px;background:var(--border2);margin:0 4px;flex-shrink:0;}
+.view{display:none;}.view.on{display:block;}
+.page{padding:20px 28px 56px;max-width:1440px;}
+.sec{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:24px 0 12px;display:flex;align-items:center;gap:8px;}
+.sec::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── KPI GRID ── */
+.kg{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;}
+.kc{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px 16px;position:relative;overflow:hidden;}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:11px 11px 0 0;}
+.kc.ck::before{background:var(--teal);}  .kc.cb::before{background:var(--blue);}
+.kc.ca::before{background:var(--amber);} .kc.cp::before{background:var(--purple);}
+.kc.cg::before{background:var(--green);} .kc.cr::before{background:var(--red);}
+.ki{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;margin-bottom:10px;}
+.kc.ck .ki{background:var(--tdim);color:var(--teal);}  .kc.cb .ki{background:var(--bdim);color:var(--blue);}
+.kc.ca .ki{background:var(--adim);color:var(--amber);} .kc.cp .ki{background:var(--pdim);color:var(--purple);}
+.kc.cg .ki{background:var(--gdim);color:var(--green);} .kc.cr .ki{background:var(--rdim);color:var(--red);}
+.kl{font-size:10px;color:var(--text3);margin-bottom:3px;font-weight:500;}
+.kv{font-size:20px;font-weight:300;letter-spacing:-.5px;line-height:1;margin-bottom:4px;}
+.kc.ck .kv{color:var(--teal);}  .kc.cb .kv{color:var(--blue);}
+.kc.ca .kv{color:var(--amber);} .kc.cp .kv{color:var(--purple);}
+.kc.cg .kv{color:var(--green);} .kc.cr .kv{color:var(--red);}
+.ksub{font-size:10px;color:var(--text3);}
+
+/* ── CARDS ── */
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.g3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;}
+.g32{display:grid;grid-template-columns:3fr 2fr;gap:14px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:18px 20px;}
+.ct{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);margin-bottom:3px;}
+.cs{font-size:10px;color:var(--text3);margin-bottom:16px;}
+.cw{position:relative;width:100%;}
+.dw{position:relative;}
+.dc{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;}
+.dcb{font-size:18px;font-weight:300;color:var(--text);line-height:1;}
+.dcs{font-size:10px;color:var(--text3);margin-top:1px;}
+
+/* ── STAT ROW ── */
+.sr{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);}
+.sr:last-child{border-bottom:none;}
+.sk{font-size:12px;color:var(--text2);}
+.sv{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);}
+.sv.g{color:var(--green);}.sv.a{color:var(--amber);}.sv.b{color:var(--blue);}
+
+/* ── FUNIL ── */
+.fs{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+.fl{width:130px;font-size:11px;color:var(--text2);text-align:right;flex-shrink:0;}
+.fbw{flex:1;}
+.fbg{height:24px;background:var(--bg4);border-radius:4px;overflow:hidden;}
+.fbf{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:9px;font-size:11px;font-weight:500;}
+.fn-n{width:26px;text-align:right;font-family:var(--mono);font-size:11px;font-weight:500;flex-shrink:0;}
+
+/* ── DISC ── */
+.dr{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);}
+.dr:last-child{border-bottom:none;}
+.dname{flex:1;min-width:0;}
+.do{font-size:10px;color:var(--text3);}
+.di{font-size:11px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dbt{width:90px;}.dbt-bg{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.dbt-f{height:100%;border-radius:3px;}
+.dpct{width:36px;text-align:right;font-family:var(--mono);font-size:11px;font-weight:500;}
+.dval{width:90px;text-align:right;font-family:var(--mono);font-size:10px;color:var(--text3);}
+.bignr{text-align:center;padding:6px 0 16px;}
+.bignr-v{font-size:34px;font-weight:300;letter-spacing:-2px;color:var(--green);line-height:1;}
+.bignr-l{font-size:11px;color:var(--text3);margin-top:5px;}
+
+/* ── LEGEND ── */
+.leg{display:flex;flex-wrap:wrap;gap:9px;margin-top:11px;}
+.li{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);}
+.ld{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+
+/* ── RINGS ── */
+.rg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;}
+.ri{text-align:center;}
+.rv{font-size:15px;font-weight:300;font-family:var(--mono);}
+.rl{font-size:10px;color:var(--text3);margin-top:2px;}
+
+/* ── CMP ── */
+.cmpblk{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;margin-bottom:4px;display:none;}
+.cmpblk.on{display:block;}
+.cmp-title{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;}
+.cmp-g{display:flex;gap:16px;flex-wrap:wrap;}
+.cmp-i{display:flex;align-items:center;gap:10px;background:var(--bg4);border-radius:7px;padding:8px 12px;flex:1;min-width:160px;}
+.cmp-l{font-size:11px;color:var(--text2);flex:1;}
+.cmp-v{text-align:right;}
+.cmp-cur{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);}
+.cmp-prv{font-size:10px;color:var(--text3);}
+.delta{display:inline-block;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;font-family:var(--mono);}
+.dup{background:var(--gdim);color:var(--green);}
+.ddn{background:var(--rdim);color:var(--red);}
+.deq{background:var(--bg4);color:var(--text3);}
+
+/* ── BADGE ── */
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:.02em;}
+.bg{background:var(--bdim);color:var(--blue);}
+.bp{background:var(--pdim);color:var(--purple);}
+.br{background:var(--gdim);color:var(--green);}
+.ba{background:var(--adim);color:var(--amber);}
+.bx{background:var(--rdim);color:var(--red);}
+.bt{background:var(--tdim);color:var(--teal);}
+
+/* ── TABELA ── */
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);padding:0 8px 8px 0;border-bottom:1px solid var(--border);}
+.tbl td{padding:8px 8px 8px 0;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text2);}
+.tbl tr:last-child td{border-bottom:none;}
+.mn{font-family:var(--mono);font-size:10px;color:var(--text3);}
+.bld{color:var(--text);font-weight:500;}
+.vr{text-align:right;font-family:var(--mono);}
+
+/* ── CONSOLIDADO ── */
+.cons-kg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;}
+.ct-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.ct-tbl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);padding:0 8px 8px 0;border-bottom:1px solid var(--border);}
+.ct-tbl td{padding:7px 8px 7px 0;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle;}
+.ct-tbl tr:last-child td{border-bottom:none;}
+.trend{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-family:var(--mono);padding:1px 5px;border-radius:3px;font-weight:700;}
+.trend.up{background:var(--gdim);color:var(--green);}
+.trend.dn{background:var(--rdim);color:var(--red);}
+.trend.eq{background:var(--bg4);color:var(--text3);}
+.rk-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+.rk-name{width:180px;font-size:11px;color:var(--text2);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rk-track{flex:1;height:7px;background:var(--bg4);border-radius:4px;overflow:hidden;}
+.rk-fill{height:100%;border-radius:4px;}
+.rk-val{width:90px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--text);flex-shrink:0;}
+
+/* ── FOOTER ── */
+.footer{border-top:1px solid var(--border);margin-top:36px;padding-top:16px;display:flex;justify-content:space-between;align-items:center;color:var(--text3);font-size:11px;}
+
+/* ── GUIDE SCREEN ── */
+.guide{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;gap:0;padding:32px;}
+.guide-box{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:32px 36px;max-width:640px;width:100%;}
+.guide-box h2{font-size:16px;font-weight:500;margin-bottom:6px;}
+.guide-box .sub{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
+.step{display:flex;gap:14px;margin-bottom:18px;}
+.step-n{width:26px;height:26px;border-radius:50%;background:var(--bdim);border:1px solid var(--blue);color:var(--blue);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-body h4{font-size:13px;font-weight:500;margin-bottom:4px;}
+.step-body p{font-size:12px;color:var(--text2);line-height:1.6;}
+.step-body code{background:var(--bg4);padding:1px 6px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--amber);}
+.col-ref{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-top:8px;font-size:11px;line-height:1.8;font-family:var(--mono);color:var(--text2);}
+.col-ref b{color:var(--green);}
+
+@keyframes fu{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.kc{animation:fu .4s ease both;}
+.kc:nth-child(1){animation-delay:.03s;}.kc:nth-child(2){animation-delay:.06s;}
+.kc:nth-child(3){animation-delay:.09s;}.kc:nth-child(4){animation-delay:.12s;}
+.kc:nth-child(5){animation-delay:.15s;}.kc:nth-child(6){animation-delay:.18s;}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div class="hdr">
+  <div class="hl">
+    <div class="lm">TB</div>
+    <div>
+      <div class="ht">TB Engenharia e Construção</div>
+      <div class="hs" id="hSub">Dashboard de Compras · conectado ao Google Sheets</div>
+    </div>
+  </div>
+  <div class="hr">
+    <div class="pill" id="hPer">—</div>
+    <button class="btn btn-blue" onclick="recarregar()">↻ Atualizar dados</button>
+    <button class="btn btn-amber" onclick="abrirConfig()">⚙ URL da planilha</button>
+  </div>
+</div>
+
+<!-- ═══ MODAL CONFIG ═══ -->
+<div class="overlay" id="cfgModal" onclick="if(event.target===this)fecharConfig()">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Configurar URL do painel</h2>
+      <button class="modal-close" onclick="fecharConfig()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;">
+        Cole abaixo a <b style="color:var(--text)">URL do Web App</b> gerada no Google Apps Script.<br>
+        Você configura isso <b style="color:var(--text)">uma única vez</b>. Depois o time só cola dados no Sheets.
+      </p>
+      <div class="field-group">
+        <label>URL do Web App</label>
+        <input type="text" id="inputUrl" placeholder="https://script.google.com/macros/s/AKfy.../exec" />
+        <div class="hint">
+          Para gerar: abra a planilha → <b>Extensões → Apps Script</b> → cole o script → <b>Implantar → Nova implantação</b><br>
+          Executar como: <b>Eu</b> · Quem tem acesso: <b>Qualquer pessoa</b> → copie a URL gerada
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-green" onclick="salvarUrl()">Salvar e carregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ABAS ═══ -->
+<div class="tabs" id="tabBar"></div>
+
+<!-- ═══ CONTEÚDO ═══ -->
+<div id="appContent">
+  <!-- Preenchido via JS -->
+</div>
+
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;">
+        Cole o <b style="color:var(--text)">ID publicado</b> da planilha.<br>
+        Vá em <b>Arquivo → Publicar na web → Publicar</b>.<br>
+        O ID fica na URL publicada entre <code style="background:var(--bg4);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--amber);">/d/e/</code> e <code style="background:var(--bg4);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--amber)">/pub</code>.<br>
+        Ex: <code style="background:var(--bg4);padding:2px 7px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--green);">https://docs.google.com/spreadsheets/d/e/<b>2PACX-1vR...</b>/pubhtml</code>
+      </p>
+
+      <div class="field-group">
+        <label>ID da planilha</label>
+        <input type="text" id="inputSheetId" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" />
+        <div class="hint">
+          A planilha precisa ser <b style="color:var(--text)">pública</b> (Compartilhar → "Qualquer pessoa com o link pode ver").<br>
+          Ela deve ter <b style="color:var(--text)">3 abas</b> com os nomes exatos:
+          <code>Compras</code>, <code>Cotacoes</code>, <code>Solicitacoes</code>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Estrutura esperada de cada aba</label>
+        <div class="col-ref">
+          <b>Aba "Compras"</b> — 1 linha por OC:<br>
+          semana | num_oc | cotacao | obra | fornecedor | data | valor | situacao | responsavel<br><br>
+          <b>Aba "Cotacoes"</b> — 1 linha por cotação:<br>
+          semana | num_cot | obra | itens | fornecedores | data | situacao<br><br>
+          <b>Aba "Solicitacoes"</b> — 1 linha por solicitação:<br>
+          semana | num_sol | obra | descricao | itens | data_sol | necessidade | situacao<br><br>
+          <b>Aba "Descontos"</b> (opcional) — 1 linha por cotação com mapa:<br>
+          semana | cotacao | obra | item | forn_venc | maior_preco | preco_venc
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-blue" onclick="baixarTemplate()">⬇ Baixar template CSV</button>
+      <button class="btn btn-green" onclick="salvarConfig()">Salvar e carregar dados</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  ESTADO DOS ARQUIVOS CARREGADOS
+// ══════════════════════════════════════════════════════
+// Estado gerenciado via localStorage (STORAGE_KEY)
+
+// ── Formatos BR ──────────────────────────────────────
+const brl   = v => "R$\u00A0" + Number(v).toLocaleString("pt-BR", {minimumFractionDigits:2, maximumFractionDigits:2});
+const brlK  = brl;
+const brlAx = v => "R$\u00A0" + Number(v).toLocaleString("pt-BR", {minimumFractionDigits:0, maximumFractionDigits:0});
+const pct   = (a,b) => b>0 ? (a/b*100).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%" : "—";
+
+const BADGE = {
+  gerada:     '<span class="badge bg">Gerada</span>',
+  processada: '<span class="badge bp">Processada</span>',
+  recebida:   '<span class="badge br">Recebida ✓</span>',
+  aberta:     '<span class="badge ba">Aberta</span>',
+  parcial:    '<span class="badge bx">Parcial</span>',
+  enviada:    '<span class="badge bt">Env. forn.</span>',
+  'enviada ao fornecedor': '<span class="badge bt">Env. forn.</span>',
+  'processada pelo forn...': '<span class="badge bp">Processada</span>',
+  'pendente de reenvio': '<span class="badge bx">Pend. reenvio</span>',
+};
+function badgeFor(s) {
+  if (!s) return '';
+  const k = s.toLowerCase().trim();
+  return BADGE[k] || `<span class="badge ba">${s}</span>`;
+}
+
+const CORES = ['#4a9eff','#2dd9c8','#f5a623','#a78bfa','#2dd98f','#ff5e5e','#f97316','#e879f9','#fb923c','#34d399'];
+
+let charts = {}, viewAtual = 'semana', idxAtivo = 0;
+let SEMANAS = [];
+
+function killCharts() {
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e) {} });
+  charts = {};
+}
+
+// ══════════════════════════════════════════════════════
+//  GOOGLE SHEETS — leitura via CSV público
+// Parse simples de CSV (suporta campos com vírgula entre aspas)
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,'_').replace(/[^\w_]/g,''));
+  return lines.slice(1).map(l => {
+    const cols = splitCSVLine(l);
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = (cols[i]||'').trim());
+    return obj;
+  }).filter(r => Object.values(r).some(v => v));
+}
+
+function splitCSVLine(line) {
+  const cols = [];
+  let cur = '', inQ = false;
+  for (let i=0; i<line.length; i++) {
+    if (line[i]==='"') { inQ=!inQ; }
+    else if (line[i]===',' && !inQ) { cols.push(cur); cur=''; }
+    else cur += line[i];
+  }
+  cols.push(cur);
+  return cols;
+}
+
+function toNum(s) {
+  if (!s) return 0;
+  // Aceita tanto formato BR (1.234,56) quanto normal (1234.56)
+  const clean = String(s).replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.');
+  return parseFloat(clean) || 0;
+}
+
+// Agrupa rows em semanas e monta o array SEMANAS
+function processarDados(compras, cotacoes, solicitacoes, descontos) {
+  // Detecta semanas únicas a partir das compras
+  const semanasSet = new Set();
+  compras.forEach(r => { if (r.semana) semanasSet.add(r.semana); });
+  cotacoes.forEach(r => { if (r.semana) semanasSet.add(r.semana); });
+  solicitacoes.forEach(r => { if (r.semana) semanasSet.add(r.semana); });
+
+  const semanasOrdenadas = [...semanasSet].sort();
+
+  return semanasOrdenadas.reverse().map(sem => {
+    const ocs    = compras.filter(r => r.semana === sem);
+    const cots   = cotacoes.filter(r => r.semana === sem);
+    const sols   = solicitacoes.filter(r => r.semana === sem);
+    const descs  = descontos.filter(r => r.semana === sem);
+
+    const totalOCs = ocs.reduce((a,r) => a + toNum(r.valor), 0);
+
+    // Situações de OC
+    const sit = (s='') => s.toLowerCase().trim();
+    const ordensGeradas     = ocs.filter(r => sit(r.situacao).includes('gerada')).length;
+    const ordensProcessadas = ocs.filter(r => sit(r.situacao).includes('processada')).length;
+    const ordensRecebidas   = ocs.filter(r => sit(r.situacao).includes('recebida')).length;
+
+    // Situações de cotação
+    const cotResp   = cots.filter(r => sit(r.situacao).includes('respondida') && !sit(r.situacao).includes('parcial')).length;
+    const cotParcial= cots.filter(r => sit(r.situacao).includes('parcial')).length;
+    const cotAberta = cots.filter(r => sit(r.situacao).includes('aberta') || sit(r.situacao).includes('nova') || sit(r.situacao).includes('enviada')).length;
+
+    // Obras únicas nas OCs
+    const obraMap = {};
+    ocs.forEach(o => { const k=o.obra||'—'; obraMap[k]=(obraMap[k]||0)+toNum(o.valor); });
+
+    // Timeline diária
+    const diaMap = {};
+    ocs.forEach(o => { const d=o.data||'—'; diaMap[d]=(diaMap[d]||0)+toNum(o.valor); });
+    const diasOrdenados = Object.keys(diaMap).sort();
+
+    // Responsáveis
+    const respMap = {};
+    ocs.forEach(o => {
+      const k = o.responsavel||o.criado_por||'—';
+      if (!respMap[k]) respMap[k]={ocs:0,total:0};
+      respMap[k].ocs++;
+      respMap[k].total += toNum(o.valor);
+    });
+
+    // Cotações por obra e status
+    const obrasUnicas = [...new Set(cots.map(c=>c.obra).filter(Boolean))];
+    const cotStatus = {
+      labels:     obrasUnicas,
+      respondida: obrasUnicas.map(o => cots.filter(c=>c.obra===o && sit(c.situacao).includes('respondida') && !sit(c.situacao).includes('parcial')).length),
+      parcial:    obrasUnicas.map(o => cots.filter(c=>c.obra===o && sit(c.situacao).includes('parcial')).length),
+      enviada:    obrasUnicas.map(o => cots.filter(c=>c.obra===o && (sit(c.situacao).includes('enviada') || sit(c.situacao).includes('nova'))).length),
+      aberta:     obrasUnicas.map(o => cots.filter(c=>c.obra===o && sit(c.situacao).includes('aberta')).length),
+    };
+
+    // Pendências (solicitações não finalizadas)
+    const pendencias = sols
+      .filter(r => !sit(r.situacao).includes('ordem') && !sit(r.situacao).includes('contrato'))
+      .map(r => ({ num: r.num_sol||r.numero, desc: r.descricao, obra: r.obra, sit: sit(r.situacao).includes('parcial')?'parcial':'aberta' }));
+
+    // Descontos
+    const descontosMapped = descs.map(d => ({
+      cotacao:    d.cotacao,
+      obra:       d.obra,
+      item:       d.item,
+      fornVenc:   d.forn_venc,
+      maiorPreco: toNum(d.maior_preco),
+      precoVenc:  toNum(d.preco_venc),
+    }));
+
+    // Ticket médio e mediana
+    const vals = ocs.map(o => toNum(o.valor)).sort((a,b)=>a-b);
+    const mediana = vals.length === 0 ? 0 : vals.length%2===0
+      ? (vals[vals.length/2-1]+vals[vals.length/2])/2
+      : vals[Math.floor(vals.length/2)];
+
+    return {
+      label:    sem,
+      geradoEm: new Date().toLocaleDateString('pt-BR'),
+      solicitacoes: sols.length,
+      cotacoes:     cots.length,
+      cotacoesRespondidas: cotResp,
+      cotacoesParciais:    cotParcial,
+      cotacoesAbertas:     cotAberta,
+      ordens:              ocs.length,
+      ordensGeradas,
+      ordensProcessadas,
+      ordensRecebidas,
+      mediaFornPorCot: cots.length > 0
+        ? +(cots.reduce((a,r) => a + (parseInt(r.fornecedores)||0), 0) / cots.length).toFixed(1)
+        : 0,
+      totalOCs,
+      mediana,
+      descontos: descontosMapped,
+      ocs: ocs.map(o => ({
+        num:  o.num_oc||o.numero,
+        cot:  o.cotacao||'—',
+        obra: o.obra,
+        forn: o.fornecedor,
+        data: o.data,
+        valor:toNum(o.valor),
+        sit:  sit(o.situacao),
+      })),
+      cotPorObra: cotStatus,
+      obraMap,
+      timeline: { dias: diasOrdenados, valores: diasOrdenados.map(d => diaMap[d]) },
+      responsaveis: Object.entries(respMap).map(([nome,v]) => ({nome, ocs:v.ocs, total:v.total}))
+                          .sort((a,b)=>b.total-a.total),
+      pendencias,
+    };
+  });
+}
+
+function mostrarLoading(msg='Carregando...') {
+  document.getElementById('appContent').innerHTML = `
+    <div class="loading-screen">
+      <div class="spinner"></div>
+      <div class="loading-txt">${msg}</div>
+    </div>`;
+  document.getElementById('tabBar').innerHTML = '';
+}
+
+function mostrarErro(msg) {
+  document.getElementById('appContent').innerHTML = `
+    <div class="loading-screen">
+      <div class="error-box">
+        <h3>Erro ao carregar dados</h3>
+        <p>${msg}</p>
+        <br>
+        <button class="btn btn-amber" style="margin-top:8px;">⚙ Configurar planilha</button>
+      </div>
+    </div>`;
+}
+
+function mostrarGuia() {
+  document.getElementById('tabBar').innerHTML = '';
+  document.getElementById('hPer').innerHTML = '—';
+  document.getElementById('appContent').innerHTML = `
+    <div class="guide">
+      <div class="guide-box">
+        <h2>Como conectar ao Google Sheets</h2>
+        <p class="sub">
+          Este painel lê automaticamente os dados de uma planilha pública do Google.<br>
+          Siga os 3 passos abaixo para configurar:
+        </p>
+
+        <div class="step">
+          <div class="step-n">1</div>
+          <div class="step-body">
+            <h4>Crie a planilha no Google Sheets</h4>
+            <p>Use o template abaixo como base. Crie <b>4 abas</b> com os nomes:<br>
+            <code>Compras</code>, <code>Cotacoes</code>, <code>Solicitacoes</code>, <code>Descontos</code></p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-n">2</div>
+          <div class="step-body">
+            <h4>Torne a planilha pública</h4>
+            <p>Clique em <b>Compartilhar</b> → <b>Alterar para qualquer pessoa com o link</b> → selecione <b>Visualizador</b>.<br>
+            Sem isso o painel não consegue ler os dados.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-n">3</div>
+          <div class="step-body">
+            <h4>Cole o ID da planilha aqui</h4>
+            <p>O ID fica na URL: <code>docs.google.com/spreadsheets/d/<b style="color:var(--amber)">ID_AQUI</b>/edit</code><br>
+            Clique no botão abaixo, cole o ID e pronto.</p>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button class="btn btn-blue" onclick="baixarTemplate()">⬇ Baixar planilha template (CSV)</button>
+          <button class="btn btn-green">⚙ Configurar agora</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Abas de navegação ────────────────────────────────
+function buildTabs() {
+  const bar = document.getElementById('tabBar');
+  bar.innerHTML = '';
+  SEMANAS.forEach((sm, i) => {
+    const t = document.createElement('div');
+    t.className = 'tab' + (viewAtual==='semana' && i===idxAtivo ? ' on' : '');
+    t.textContent = 'Sem.' + (SEMANAS.length - i) + ' · ' + sm.label;
+    t.onclick = () => { viewAtual='semana'; idxAtivo=i; buildTabs(); renderSemana(i); };
+    bar.appendChild(t);
+  });
+  if (SEMANAS.length > 1) {
+    const sep = document.createElement('div'); sep.className='tab-sep'; bar.appendChild(sep);
+    const tc = document.createElement('div');
+    tc.className = 'tab' + (viewAtual==='cons' ? ' on-c' : '');
+    tc.innerHTML = '◈ Consolidado';
+    tc.onclick = () => { viewAtual='cons'; buildTabs(); renderCons(); };
+    bar.appendChild(tc);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER SEMANA
+// ═══════════════════════════════════════════════════
+function renderSemana(idx) {
+  killCharts();
+  const s = SEMANAS[idx];
+  if (!s) return;
+
+  document.getElementById('hSub').textContent = 'Dashboard de Compras · conectado ao Google Sheets';
+  document.getElementById('hPer').innerHTML = 'Semana <b>' + s.label + '</b>';
+
+  const des = s.descontos||[];
+  const bruto   = des.reduce((a,d)=>a+d.maiorPreco,0);
+  const venc    = des.reduce((a,d)=>a+d.precoVenc,0);
+  const descAbs = bruto - venc;
+  const descPctV = bruto>0 ? descAbs/bruto*100 : 0;
+  const mediaOC = s.ordens>0 ? s.totalOCs/s.ordens : 0;
+  const ocs = [...(s.ocs||[])].sort((a,b)=>b.valor-a.valor);
+
+  // Comparação semana anterior
+  let cmpHTML = '';
+  if (idx+1 < SEMANAS.length) {
+    const pv = SEMANAS[idx+1];
+    const pvDesc = (pv.descontos||[]).reduce((a,d)=>a+(d.maiorPreco-d.precoVenc),0);
+    const itens = [
+      {l:'Total OCs', cur:s.totalOCs, prv:pv.totalOCs, fmt:brlK},
+      {l:'OCs emitidas', cur:s.ordens, prv:pv.ordens, fmt:v=>v},
+      {l:'Desconto', cur:descAbs, prv:pvDesc, fmt:brlK},
+    ];
+    cmpHTML = `<div class="cmpblk on"><div class="cmp-title">vs. semana anterior (${pv.label})</div><div class="cmp-g">` +
+      itens.map(it => {
+        const d=it.cur-it.prv, dp=it.prv>0?d/it.prv*100:0;
+        const cls=d>0?'dup':d<0?'ddn':'deq', sign=d>0?'+':'';
+        return `<div class="cmp-i"><div class="cmp-l">${it.l}</div><div class="cmp-v"><div class="cmp-cur">${it.fmt(it.cur)}</div><div class="cmp-prv">ant.: ${it.fmt(it.prv)}</div></div><span class="delta ${cls}">${sign}${dp.toLocaleString('pt-BR',{minimumFractionDigits:1})}%</span></div>`;
+      }).join('') + '</div></div>';
+  }
+
+  // Funil
+  const fDados = [
+    {l:'Solicitações',         n:s.solicitacoes,        c:'#4a9eff', pct:100},
+    {l:'Cotações geradas',     n:s.cotacoes,            c:'#f5a623', pct:s.solicitacoes>0?s.cotacoes/s.solicitacoes*100:0},
+    {l:'Cotações respondidas', n:s.cotacoesRespondidas, c:'#a78bfa', pct:s.solicitacoes>0?s.cotacoesRespondidas/s.solicitacoes*100:0},
+    {l:'OCs emitidas',         n:s.ordens,              c:'#2dd98f', pct:s.solicitacoes>0?s.ordens/s.solicitacoes*100:0},
+    {l:'OCs recebidas',        n:s.ordensRecebidas,     c:'#2dd9c8', pct:s.solicitacoes>0?s.ordensRecebidas/s.solicitacoes*100:0},
+  ];
+  const funilHTML = fDados.map(f =>
+    `<div class="fs"><div class="fl">${f.l}</div>
+     <div class="fbw"><div class="fbg"><div class="fbf" style="width:${Math.max(f.pct,2)}%;background:${f.c};color:${['#f5a623','#2dd98f','#2dd9c8'].includes(f.c)?'#000':'#fff'}">${f.n}</div></div></div>
+     <div class="fn-n" style="color:${f.c}">${f.n}</div></div>`
+  ).join('');
+
+  // Descontos HTML
+  const dcCores = ['#2dd98f','#4a9eff','#f5a623','#2dd9c8','#a78bfa','#ff5e5e'];
+  const maiorPct = des.length ? Math.max(...des.map(d=>d.maiorPreco>0?(d.maiorPreco-d.precoVenc)/d.maiorPreco*100:0)) : 0;
+  const descRowsHTML = des.length ? des.map((d,i) => {
+    const dv=d.maiorPreco-d.precoVenc, dp=d.maiorPreco>0?dv/d.maiorPreco*100:0, bw=maiorPct>0?dp/maiorPct*100:0;
+    return `<div class="dr"><div class="dname"><div class="do">${d.obra} · Cot. ${d.cotacao}</div><div class="di">${d.item||''} – ${d.fornVenc||''}</div></div>
+    <div class="dbt"><div class="dbt-bg"><div class="dbt-f" style="width:${bw}%;background:${dcCores[i%dcCores.length]};"></div></div></div>
+    <div class="dpct" style="color:${dcCores[i%dcCores.length]}">${dp.toLocaleString('pt-BR',{minimumFractionDigits:1})}%</div>
+    <div class="dval">${brlK(dv)}</div></div>`;
+  }).join('') : '<div style="font-size:12px;color:var(--text3);padding:12px 0;">Nenhum mapa de cotação com comparação de preços nesta semana.</div>';
+
+  // Obras (donut)
+  const obraMap = s.obraMap||{};
+  const obraNomes = Object.keys(obraMap), obraVals = obraNomes.map(n=>obraMap[n]);
+
+  // Responsáveis e pendências
+  const respHTML = (s.responsaveis||[]).map(r=>
+    `<div class="sr"><div class="sk">${r.nome}</div><div class="sv">${r.ocs} OCs · ${brlK(r.total)}</div></div>`).join('');
+  const pendHTML = (s.pendencias||[]).slice(0,5).map(p=>
+    `<div class="sr"><div class="sk" style="font-size:11px;">${p.num} · ${p.desc||''} <span style="color:var(--text3);font-size:10px;">(${p.obra||''})</span></div>${badgeFor(p.sit)}</div>`).join('') || '<div style="font-size:12px;color:var(--text3);">Nenhuma pendência identificada.</div>';
+
+  document.getElementById('appContent').innerHTML = `
+  <div class="page">
+    ${cmpHTML}
+    <div class="sec">Indicadores do período</div>
+    <div class="kg">
+      <div class="kc cb"><div class="ki">◎</div><div class="kl">Solicitações</div><div class="kv">${s.solicitacoes}</div><div class="ksub">última: ${(s.pendencias||[])[0]?.num||'—'}</div></div>
+      <div class="kc ca"><div class="ki">◈</div><div class="kl">Cotações</div><div class="kv">${s.cotacoes}</div><div class="ksub">${s.cotacoesRespondidas} resp. · ${s.cotacoesParciais} parc. · ${s.cotacoesAbertas} ab.</div></div>
+      <div class="kc cp"><div class="ki">◆</div><div class="kl">OCs emitidas</div><div class="kv">${s.ordens}</div><div class="ksub">${s.ordensRecebidas} recebidas · ${s.ordensProcessadas} processadas</div></div>
+      <div class="kc ck"><div class="ki">◉</div><div class="kl">Total comprado</div><div class="kv" style="font-size:16px;">${brlK(s.totalOCs)}</div><div class="ksub">soma das OCs</div></div>
+      <div class="kc cg"><div class="ki">▲</div><div class="kl">Desconto obtido</div><div class="kv" style="font-size:${des.length?'16px':'22px'};">${des.length?brlK(descAbs):'—'}</div><div class="ksub">${des.length?descPctV.toLocaleString('pt-BR',{minimumFractionDigits:1})+'% s/ cotações mapeadas':'sem mapa de cotação'}</div></div>
+      <div class="kc cr"><div class="ki">◑</div><div class="kl">Ticket médio / OC</div><div class="kv" style="font-size:16px;">${brlK(mediaOC)}</div><div class="ksub">Mediana: ${brlK(s.mediana||0)}</div></div>
+    </div>
+
+    <div class="sec">Funil operacional · volume por obra</div>
+    <div class="g2">
+      <div class="card">
+        <div class="ct">Funil · Solicitação → OC</div><div class="cs">Conversão no período</div>
+        ${funilHTML}
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+          <div class="sr"><div class="sk">Taxa sol. → OC emitida</div><div class="sv a">${pct(s.ordens,s.solicitacoes)}</div></div>
+          <div class="sr"><div class="sk">Taxa OC → recebida</div><div class="sv a">${pct(s.ordensRecebidas,s.ordens)}</div></div>
+          <div class="sr"><div class="sk">Média forn./cotação</div><div class="sv">${s.mediaFornPorCot?.toLocaleString('pt-BR',{minimumFractionDigits:1})||'—'}</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">Volume por obra</div><div class="cs">R$ total em OCs do período</div>
+        <div class="cw dw" style="height:200px;"><canvas id="chObras"></canvas></div>
+        <div class="leg" id="legObras"></div>
+        <div class="sr" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);"><div class="sk">Total</div><div class="sv a" id="obTot">—</div></div>
+      </div>
+    </div>
+
+    <div class="sec">Análise de descontos</div>
+    <div class="g3">
+      <div class="card">
+        <div class="ct">Desconto por cotação</div><div class="cs">Diferença maior preço vs. vencedor</div>
+        <div class="bignr"><div class="bignr-v">${des.length?brlK(descAbs):'—'}</div><div class="bignr-l">total economizado nas cotações mapeadas</div></div>
+        ${descRowsHTML}
+      </div>
+      <div class="card">
+        <div class="ct">% por cotação</div><div class="cs">Economia relativa</div>
+        <div class="cw dw" style="height:180px;"><canvas id="chDisc"></canvas><div class="dc"><div class="dcb" id="dMedC">—</div><div class="dcs">desc. médio</div></div></div>
+        <div style="margin-top:10px;">
+          <div class="sr"><div class="sk">Desconto médio pond.</div><div class="sv g" id="dMed">—</div></div>
+          <div class="sr"><div class="sk">Cotações com desconto</div><div class="sv g" id="dQtd">—</div></div>
+          <div class="sr"><div class="sk">Maior desconto</div><div class="sv g" id="dMax">—</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">Resumo financeiro</div><div class="cs">Consolidado do período</div>
+        <div id="rFin"></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);" id="rOCs"></div>
+      </div>
+    </div>
+
+    <div class="sec">Status cotações · situação das OCs</div>
+    <div class="g2">
+      <div class="card">
+        <div class="ct">Cotações por obra e status</div><div class="cs">Distribuição por situação</div>
+        <div class="cw" style="height:200px;"><canvas id="chCot"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="ct">OCs por situação financeira</div><div class="cs">Ciclo de recebimento</div>
+        <div class="cw dw" style="height:180px;"><canvas id="chOC"></canvas><div class="dc"><div class="dcb" id="ocTotN">—</div><div class="dcs">ordens</div></div></div>
+        <div class="rg" id="rgrid"></div>
+      </div>
+    </div>
+
+    <div class="sec">Detalhamento das OCs · timeline</div>
+    <div class="g32">
+      <div class="card">
+        <div class="ct">Todas as OCs do período</div><div class="cs">Ordenadas por valor</div>
+        <table class="tbl">
+          <thead><tr><th>Nº OC</th><th>Cotação</th><th>Obra</th><th>Fornecedor</th><th>Data</th><th class="vr">Valor</th><th>Situação</th></tr></thead>
+          <tbody id="ocBody"></tbody>
+          <tfoot><tr>
+            <td colspan="5" style="padding:9px 0;font-size:11px;font-weight:700;color:var(--text2);">TOTAL</td>
+            <td class="vr" style="padding:9px 0;font-size:13px;color:var(--green);font-family:var(--mono);font-weight:500;" id="ocFoot">—</td>
+            <td></td>
+          </tr></tfoot>
+        </table>
+      </div>
+      <div class="card">
+        <div class="ct">Volume OC por dia</div><div class="cs">R$ no dia + acumulado</div>
+        <div class="cw" style="height:160px;"><canvas id="chTL"></canvas></div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+          <div class="ct" style="margin-bottom:10px;">Responsáveis</div>${respHTML}
+        </div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
+          <div class="ct" style="margin-bottom:10px;">Pendências</div>${pendHTML}
+        </div>
+      </div>
+    </div>
+    <div class="footer"><div id="fTxt">TB Engenharia e Construção · ${s.label}</div><span>Dashboard Google Sheets v1.0</span></div>
+  </div>`;
+
+  // ── Charts ──
+  Chart.defaults.color='#5a6370'; Chart.defaults.font.family="'DM Sans',sans-serif"; Chart.defaults.font.size=11;
+
+  // Obras donut
+  charts.obras = new Chart(document.getElementById('chObras').getContext('2d'),{
+    type:'doughnut', data:{labels:obraNomes,datasets:[{data:obraVals,backgroundColor:CORES.slice(0,obraNomes.length),borderColor:'#13161b',borderWidth:3,hoverOffset:5}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+brlK(ctx.parsed)+' ('+pct(ctx.parsed,s.totalOCs)+')' }}}}
+  });
+  document.getElementById('obTot').textContent = brlK(s.totalOCs);
+  document.getElementById('legObras').innerHTML = obraNomes.map((n,i)=>
+    `<div class="li"><div class="ld" style="background:${CORES[i%CORES.length]}"></div>${n} <span style="color:${CORES[i%CORES.length]};margin-left:2px;">${pct(obraVals[i],s.totalOCs)}</span></div>`
+  ).join('');
+
+  // Desconto donut
+  document.getElementById('dMedC').textContent = des.length?descPctV.toLocaleString('pt-BR',{minimumFractionDigits:1})+'%':'—';
+  document.getElementById('dMed').textContent  = des.length?descPctV.toLocaleString('pt-BR',{minimumFractionDigits:1})+'%':'—';
+  document.getElementById('dQtd').textContent  = des.length?des.filter(d=>d.maiorPreco>d.precoVenc).length+' de '+des.length:'—';
+  document.getElementById('dMax').textContent  = des.length?maiorPct.toLocaleString('pt-BR',{minimumFractionDigits:1})+'%':'—';
+  if (des.length) {
+    charts.disc = new Chart(document.getElementById('chDisc').getContext('2d'),{
+      type:'doughnut', data:{labels:des.map(d=>d.cotacao),datasets:[{data:des.map(d=>Math.max(d.maiorPreco-d.precoVenc,0)),backgroundColor:dcCores,borderColor:'#13161b',borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+brlK(ctx.parsed)}}}}
+    });
+  }
+
+  // Resumo
+  document.getElementById('rFin').innerHTML = [
+    {k:'Total bruto (maior cotado)', v:des.length?brl(bruto):'—', c:''},
+    {k:'Total líquido (vencedor)',   v:des.length?brl(venc):'—',  c:''},
+    {k:'Desconto absoluto',          v:des.length?'− '+brl(descAbs):'—', c:'g'},
+    {k:'Desconto % s/ bruto',        v:des.length?pct(descAbs,bruto):'—', c:'g'},
+  ].map(r=>`<div class="sr"><div class="sk">${r.k}</div><div class="sv ${r.c}">${r.v}</div></div>`).join('');
+  document.getElementById('rOCs').innerHTML = [
+    {k:'OC total emitido', v:brl(s.totalOCs), c:'a'},
+    {k:'Ticket médio',     v:brl(mediaOC),    c:''},
+    {k:'Mediana OC',       v:brl(s.mediana||0), c:''},
+    {k:'Menor OC',         v:ocs.length?brl(Math.min(...ocs.map(o=>o.valor))):'—', c:''},
+    {k:'Maior OC',         v:ocs.length?brl(Math.max(...ocs.map(o=>o.valor))):'—', c:''},
+  ].map(r=>`<div class="sr"><div class="sk">${r.k}</div><div class="sv ${r.c}">${r.v}</div></div>`).join('');
+
+  // Stacked cot
+  const cp = s.cotPorObra||{labels:[],respondida:[],parcial:[],enviada:[],aberta:[]};
+  charts.cot = new Chart(document.getElementById('chCot').getContext('2d'),{
+    type:'bar', data:{labels:cp.labels,datasets:[
+      {label:'Respondida', data:cp.respondida, backgroundColor:'#2dd98f',borderRadius:3},
+      {label:'Parcial',    data:cp.parcial,    backgroundColor:'#4a9eff',borderRadius:3},
+      {label:'Enviada',    data:cp.enviada,    backgroundColor:'#f5a623',borderRadius:3},
+      {label:'Aberta',     data:cp.aberta,     backgroundColor:'#ff5e5e',borderRadius:3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#5a6370',font:{size:10},boxWidth:9,padding:10}}},
+      scales:{x:{stacked:true,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a6370',maxRotation:25,font:{size:10}}},
+              y:{stacked:true,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a6370',stepSize:1},beginAtZero:true}}}
+  });
+
+  // OC status donut
+  document.getElementById('ocTotN').textContent = s.ordens;
+  charts.oc = new Chart(document.getElementById('chOC').getContext('2d'),{
+    type:'doughnut', data:{labels:['Gerada','Processada','Recebida','Outros'],
+      datasets:[{data:[s.ordensGeradas,s.ordensProcessadas,s.ordensRecebidas,Math.max(s.ordens-s.ordensGeradas-s.ordensProcessadas-s.ordensRecebidas,0)],
+        backgroundColor:['#4a9eff','#a78bfa','#2dd98f','#f5a623'],borderColor:'#13161b',borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}
+  });
+  document.getElementById('rgrid').innerHTML=[
+    {v:s.ordensGeradas,l:'Geradas',c:'var(--blue)'},{v:s.ordensProcessadas,l:'Processadas',c:'var(--purple)'},
+    {v:s.ordensRecebidas,l:'Recebidas',c:'var(--green)'},{v:s.cotacoesAbertas,l:'Cot. abertas',c:'var(--amber)'},
+  ].map(r=>`<div class="ri"><div class="rv" style="color:${r.c}">${r.v}</div><div class="rl">${r.l}</div></div>`).join('');
+
+  // OC tabela
+  document.getElementById('ocBody').innerHTML = ocs.map(o=>
+    `<tr><td class="mn bld">${o.num||'—'}</td><td class="mn">${o.cot||'—'}</td><td class="bld" style="font-size:11px;">${o.obra||'—'}</td>
+    <td style="color:var(--text2);font-size:10.5px;">${o.forn||'—'}</td><td class="mn">${o.data||'—'}</td>
+    <td class="vr bld">${brl(o.valor)}</td><td>${badgeFor(o.sit)}</td></tr>`
+  ).join('');
+  document.getElementById('ocFoot').textContent = brl(s.totalOCs);
+
+  // Timeline
+  const tl = s.timeline||{dias:[],valores:[]};
+  const acum = tl.valores.reduce((arr,v,i)=>{arr.push((arr[i-1]||0)+v);return arr;},[]);
+  charts.tl = new Chart(document.getElementById('chTL').getContext('2d'),{
+    type:'bar', data:{labels:tl.dias,datasets:[
+      {label:'OCs no dia',data:tl.valores,backgroundColor:'rgba(74,158,255,0.25)',borderColor:'#4a9eff',borderWidth:1,borderRadius:4},
+      {label:'Acumulado', data:acum,type:'line',borderColor:'#2dd98f',backgroundColor:'transparent',pointBackgroundColor:'#2dd98f',pointRadius:3,tension:0.3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{color:'#5a6370',font:{size:10},boxWidth:9,padding:10}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a6370',font:{size:10}}},
+              y:{grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true,ticks:{color:'#5a6370',font:{size:10},callback:v=>brlAx(v)}}}}
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER CONSOLIDADO
+// ═══════════════════════════════════════════════════
+function renderCons() {
+  killCharts();
+  const crono = [...SEMANAS].reverse();
+  const totOC   = crono.reduce((a,s)=>a+s.totalOCs,0);
+  const totDesc = crono.reduce((a,s)=>a+(s.descontos||[]).reduce((b,d)=>b+(d.maiorPreco-d.precoVenc),0),0);
+  const totOrdens = crono.reduce((a,s)=>a+s.ordens,0);
+  const totSol    = crono.reduce((a,s)=>a+s.solicitacoes,0);
+  const nS = crono.length;
+  const pDescGlobal = totOC>0?totDesc/(totOC+totDesc)*100:0;
+
+  document.getElementById('hPer').innerHTML = 'Consolidado <b>' + nS + ' semanas</b>';
+
+  const labels = crono.map((_,i)=>'Sem.'+(i+1));
+  const totais = crono.map(s=>s.totalOCs);
+  const acumOC = totais.reduce((arr,v,i)=>{arr.push((arr[i-1]||0)+v);return arr;},[]);
+  const descs  = crono.map(s=>(s.descontos||[]).reduce((a,d)=>a+(d.maiorPreco-d.precoVenc),0));
+  const maxTot = Math.max(...totais,1);
+
+  // Ranking obras acumulado
+  const obraAcum={};
+  crono.forEach(s=>Object.entries(s.obraMap||{}).forEach(([k,v])=>{obraAcum[k]=(obraAcum[k]||0)+v;}));
+  const obrasSort=Object.entries(obraAcum).sort((a,b)=>b[1]-a[1]);
+  const maxObra=obrasSort[0]?.[1]||1;
+  const obraRankHTML=obrasSort.map(([nome,val],i)=>
+    `<div class="rk-row"><div class="rk-name">${nome}</div><div class="rk-track"><div class="rk-fill" style="width:${val/maxObra*100}%;background:${CORES[i%CORES.length]};"></div></div><div class="rk-val">${brl(val)}</div></div>`
+  ).join('');
+
+  // Ranking fornecedores
+  const fornAcum={};
+  crono.forEach(s=>(s.ocs||[]).forEach(o=>{fornAcum[o.forn]=(fornAcum[o.forn]||0)+o.valor;}));
+  const fornSort=Object.entries(fornAcum).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const maxForn=fornSort[0]?.[1]||1;
+  const fornRankHTML=fornSort.map(([forn,val],i)=>
+    `<div class="rk-row"><div class="rk-name" style="width:200px;">${forn||'—'}</div><div class="rk-track"><div class="rk-fill" style="width:${val/maxForn*100}%;background:${CORES[i%CORES.length]};"></div></div><div class="rk-val">${brl(val)}</div></div>`
+  ).join('');
+
+  // Tabela semanas
+  const tbodyHTML = crono.map((s,i)=>{
+    const desc=descs[i],brt=(s.descontos||[]).reduce((a,d)=>a+d.maiorPreco,0),pD=brt>0?desc/brt*100:0,media=s.totalOCs/s.ordens;
+    let delta='<span class="trend eq">—</span>';
+    if(i>0){const dif=s.totalOCs-crono[i-1].totalOCs,dp=crono[i-1].totalOCs>0?dif/crono[i-1].totalOCs*100:0,cls=dif>0?'up':dif<0?'dn':'eq';
+      delta=`<span class="trend ${cls}">${dif>0?'+':''}${dp.toLocaleString('pt-BR',{minimumFractionDigits:1})}%</span>`;}
+    const bw=Math.round(s.totalOCs/maxTot*80);
+    return `<tr>
+      <td class="mn bld">Sem.${i+1}</td>
+      <td style="font-size:11px;color:var(--text2);">${s.label}</td>
+      <td class="vr bld">${brl(s.totalOCs)}<span style="display:inline-block;height:5px;width:${bw}px;background:rgba(74,158,255,0.35);border-radius:2px;vertical-align:middle;margin-left:6px;"></span></td>
+      <td class="vr" style="color:var(--green);">${desc>0?brl(desc):'—'}</td>
+      <td class="vr" style="color:var(--green);">${pD>0?pD.toLocaleString('pt-BR',{minimumFractionDigits:1})+'%':'—'}</td>
+      <td class="vr">${s.ordens}</td><td class="vr">${s.solicitacoes}</td><td class="vr">${s.cotacoes}</td>
+      <td class="vr">${brl(media)}</td><td>${delta}</td></tr>`;
+  }).join('');
+
+  document.getElementById('appContent').innerHTML = `
+  <div class="page">
+    <div class="sec">Visão consolidada · todas as semanas</div>
+    <div class="cons-kg">
+      <div class="kc ck"><div class="ki">◉</div><div class="kl">Total acumulado</div><div class="kv" style="font-size:16px;">${brlK(totOC)}</div><div class="ksub">${brlK(totOC/nS)} / semana</div></div>
+      <div class="kc cg"><div class="ki">▲</div><div class="kl">Desconto acumulado</div><div class="kv" style="font-size:16px;">${brlK(totDesc)}</div><div class="ksub">${pDescGlobal.toLocaleString('pt-BR',{minimumFractionDigits:1})}% s/ bruto cotado</div></div>
+      <div class="kc cp"><div class="ki">◆</div><div class="kl">OCs emitidas</div><div class="kv">${totOrdens}</div><div class="ksub">${(totOrdens/nS).toFixed(1).replace('.',',')} OCs/semana</div></div>
+      <div class="kc cb"><div class="ki">◎</div><div class="kl">Solicitações</div><div class="kv">${totSol}</div><div class="ksub">${(totSol/nS).toFixed(1).replace('.',',')} sol./semana</div></div>
+      <div class="kc ca"><div class="ki">◈</div><div class="kl">Semanas registradas</div><div class="kv">${nS}</div><div class="ksub">de 12 previstas</div></div>
+    </div>
+
+    <div class="sec">Evolução semanal</div>
+    <div class="g2">
+      <div class="card"><div class="ct">Total de OCs por semana</div><div class="cs">Valor emitido + acumulado</div><div class="cw" style="height:210px;"><canvas id="chEvolOC"></canvas></div></div>
+      <div class="card"><div class="ct">Desconto obtido por semana</div><div class="cs">R$ economizado vs. maior preço cotado</div><div class="cw" style="height:210px;"><canvas id="chEvolDesc"></canvas></div></div>
+    </div>
+
+    <div class="sec">Comparativo semanal</div>
+    <div class="card">
+      <div class="ct">Resumo por semana</div><div class="cs">Todas as semanas registradas</div>
+      <table class="ct-tbl">
+        <thead><tr><th>Sem.</th><th>Período</th><th class="vr">Total OCs</th><th class="vr">Desconto</th><th class="vr">%</th><th class="vr">OCs</th><th class="vr">Sol.</th><th class="vr">Cot.</th><th class="vr">Ticket médio</th><th>vs. anterior</th></tr></thead>
+        <tbody>${tbodyHTML}</tbody>
+        <tfoot><tr>
+          <td class="bld" style="padding:9px 0;font-size:11px;" colspan="2">ACUMULADO (${nS} semanas)</td>
+          <td class="vr" style="padding:9px 0;color:var(--teal);font-family:var(--mono);font-size:12px;font-weight:700;">${brl(totOC)}</td>
+          <td class="vr" style="padding:9px 0;color:var(--green);font-family:var(--mono);font-size:12px;font-weight:700;">${brl(totDesc)}</td>
+          <td class="vr" style="padding:9px 0;color:var(--green);font-family:var(--mono);font-size:11px;">${pDescGlobal.toLocaleString('pt-BR',{minimumFractionDigits:1})}%</td>
+          <td class="vr" style="padding:9px 0;font-family:var(--mono);font-size:12px;font-weight:700;">${totOrdens}</td>
+          <td class="vr" style="padding:9px 0;font-family:var(--mono);">${totSol}</td>
+          <td class="vr" style="padding:9px 0;font-family:var(--mono);">${crono.reduce((a,s)=>a+s.cotacoes,0)}</td>
+          <td class="vr" style="padding:9px 0;font-family:var(--mono);">${brl(totOC/totOrdens)}</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+    </div>
+
+    <div class="g2">
+      <div class="card"><div class="ct">Ranking de obras · volume acumulado</div><div class="cs">R$ total em OCs por obra em todas as semanas</div><div id="obraRank" style="margin-top:4px;">${obraRankHTML}</div></div>
+      <div class="card"><div class="ct">Top fornecedores · volume acumulado</div><div class="cs">Top 10 por R$ total em OCs</div><div id="fornRank" style="margin-top:4px;">${fornRankHTML}</div></div>
+    </div>
+
+    <div class="footer"><div>TB Engenharia e Construção · Consolidado</div><span>Dashboard Google Sheets v1.0</span></div>
+  </div>`;
+
+  Chart.defaults.color='#5a6370'; Chart.defaults.font.family="'DM Sans',sans-serif"; Chart.defaults.font.size=11;
+  charts.evolOC = new Chart(document.getElementById('chEvolOC').getContext('2d'),{
+    type:'bar',data:{labels,datasets:[
+      {label:'OCs na semana',data:totais,backgroundColor:'rgba(74,158,255,0.3)',borderColor:'#4a9eff',borderWidth:1,borderRadius:5,order:2},
+      {label:'Acumulado',data:acumOC,type:'line',borderColor:'#2dd98f',backgroundColor:'rgba(45,217,143,0.07)',fill:true,pointBackgroundColor:'#2dd98f',pointRadius:4,tension:0.3,order:1},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#5a6370',font:{size:10},boxWidth:9,padding:10}},tooltip:{callbacks:{label:ctx=>' '+brlK(ctx.parsed.y??ctx.parsed)}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a6370',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true,ticks:{color:'#5a6370',font:{size:10},callback:v=>brlAx(v)}}}}
+  });
+  charts.evolDesc = new Chart(document.getElementById('chEvolDesc').getContext('2d'),{
+    type:'bar',data:{labels,datasets:[{label:'Desconto (R$)',data:descs,backgroundColor:descs.map(d=>d>0?'rgba(45,217,143,0.55)':'rgba(90,99,112,0.3)'),borderColor:descs.map(d=>d>0?'#2dd98f':'#5a6370'),borderWidth:1,borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+brlK(ctx.parsed)}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a6370',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true,ticks:{color:'#5a6370',font:{size:10},callback:v=>brlAx(v)}}}}
+  });
+}
+
+
+function fecharConfig() { document.getElementById('configOverlay').classList.remove('open'); }
+// ── Init ────────────────────────────────────────────
+
+
+// ══════════════════════════════════════════════════════
+//  CARREGAMENTO VIA APPS SCRIPT (URL única, sem CORS)
+// ══════════════════════════════════════════════════════
+const STORAGE_KEY = 'tb_webapp_url';
+
+function getUrl()   { return localStorage.getItem(STORAGE_KEY) || ''; }
+function saveUrl(u) { localStorage.setItem(STORAGE_KEY, u); }
+
+function abrirConfig() {
+  document.getElementById('inputUrl').value = getUrl();
+  document.getElementById('cfgModal').classList.add('open');
+}
+function fecharConfig() {
+  document.getElementById('cfgModal').classList.remove('open');
+}
+function salvarUrl() {
+  const url = document.getElementById('inputUrl').value.trim();
+  if (!url) { alert('Cole a URL do Web App antes de salvar.'); return; }
+  saveUrl(url);
+  fecharConfig();
+  carregarDados();
+}
+function recarregar() {
+  if (getUrl()) carregarDados();
+  else abrirConfig();
+}
+
+async function carregarDados() {
+  const url = getUrl();
+  if (!url) { mostrarGuia(); return; }
+
+  mostrarLoading('Buscando dados do Google Sheets...');
+
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('Erro HTTP ' + r.status + '. Verifique se a URL está correta e o acesso é "Qualquer pessoa".');
+    const json = await r.json();
+
+    const compras      = json.compras      || [];
+    const cotacoes     = json.cotacoes     || [];
+    const solicitacoes = json.solicitacoes || [];
+    const descontos    = json.descontos    || [];
+
+    if (compras.length === 0) throw new Error('A aba "Compras" está vazia. Verifique a planilha.');
+
+    SEMANAS = processarDados(compras, cotacoes, solicitacoes, descontos);
+    if (SEMANAS.length === 0) throw new Error('Nenhuma semana encontrada. Verifique se a coluna "semana" está preenchida.');
+
+    document.getElementById('hSub').textContent =
+      SEMANAS.length + ' semanas carregadas · última atualização ' + new Date().toLocaleTimeString('pt-BR');
+    document.getElementById('hPer').innerHTML = '<b>' + SEMANAS[0].label + '</b>';
+
+    idxAtivo = 0; viewAtual = 'semana';
+    buildTabs();
+    renderSemana(0);
+
+  } catch(err) {
+    mostrarErro(err.message + '<br><br><button class="btn btn-amber" onclick="abrirConfig()" style="margin-top:8px;">⚙ Configurar URL</button>');
+  }
+}
+
+// URL do Apps Script — já configurada
+(function() {
+  const URL_WEBAPP = 'https://script.google.com/macros/s/AKfycbzyF1F-eHehn7tlowAV3jNa0BUGyRXKbyGcpgM2jYAvecsW6Z-ZoOQphtR5J6Up8whT/exec';
+  localStorage.setItem('tb_webapp_url', URL_WEBAPP);
+  carregarDados();
+})();
+</script>
+</body>
+</html>
