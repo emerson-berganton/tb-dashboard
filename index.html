@@ -305,6 +305,10 @@ const CORES = ['#4a9eff','#2dd9c8','#f5a623','#a78bfa','#2dd98f','#ff5e5e','#f97
 
 let charts = {}, viewAtual = 'semana', idxAtivo = 0;
 let SEMANAS = [];
+let consOrdemAsc = true;
+let obraChartType = 'bar', fornChartType = 'bar';
+let CONS_DATA = null;
+let _obraChart = null, _fornChart = null;
 
 function killCharts() {
   Object.values(charts).forEach(c => { try { c.destroy(); } catch(e) {} });
@@ -820,6 +824,92 @@ function renderSemana(idx) {
 }
 
 // ═══════════════════════════════════════════════════
+//  HELPERS CONSOLIDADO
+function _rankHTML(items, maxVal, tipo) {
+  if (tipo === 'donut') return `<canvas id="${items[0]?.__canvas||'rankChart'}" style="max-height:260px;"></canvas>`;
+  return items.map(([nome,val],i)=>
+    `<div class="rk-row"><div class="rk-name" style="${items[0]?.__wide?'width:200px;':''}">${nome||'—'}</div><div class="rk-track"><div class="rk-fill" style="width:${val/maxVal*100}%;background:${CORES[i%CORES.length]};"></div></div><div class="rk-val">${brl(val)}</div></div>`
+  ).join('');
+}
+
+function _makeDonut(canvasId, items, chartRef) {
+  if (chartRef) chartRef.destroy();
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return null;
+  return new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: items.map(([n])=>n||'—'),
+      datasets: [{ data: items.map(([,v])=>v), backgroundColor: CORES.slice(0,items.length), borderWidth:0, hoverOffset:8 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'right', labels:{ color:'#8a939f', font:{size:11}, boxWidth:10, padding:12 } },
+        tooltip: { callbacks: { label: ctx => ' ' + brl(ctx.parsed) } }
+      }
+    }
+  });
+}
+
+function renderConsTable() {
+  if (!CONS_DATA) return;
+  const { crono, descs, maxTot } = CONS_DATA;
+  const rows = consOrdemAsc ? crono : [...crono].reverse();
+  document.getElementById('consTableBody').innerHTML = rows.map((s,ri)=>{
+    const i = consOrdemAsc ? ri : crono.length - 1 - ri;
+    const desc=descs[i],brt=(s.descontos||[]).reduce((a,d)=>a+d.maiorPreco,0),pD=brt>0?desc/brt*100:0,media=s.totalOCs/s.ordens;
+    let delta='<span class="trend eq">—</span>';
+    if(i>0){const dif=s.totalOCs-crono[i-1].totalOCs,dp=crono[i-1].totalOCs>0?dif/crono[i-1].totalOCs*100:0,cls=dif>0?'up':dif<0?'dn':'eq';
+      delta=`<span class="trend ${cls}">${dif>0?'+':''}${dp.toLocaleString('pt-BR',{minimumFractionDigits:1})}%</span>`;}
+    const bw=Math.round(s.totalOCs/maxTot*80);
+    return `<tr>
+      <td class="mn bld">Sem.${i+1}</td>
+      <td style="font-size:11px;color:var(--text2);">${s.label}</td>
+      <td class="vr bld">${brl(s.totalOCs)}<span style="display:inline-block;height:5px;width:${bw}px;background:rgba(74,158,255,0.35);border-radius:2px;vertical-align:middle;margin-left:6px;"></span></td>
+      <td class="vr" style="color:var(--green);">${desc>0?brl(desc):'—'}</td>
+      <td class="vr" style="color:var(--green);">${pD>0?pD.toLocaleString('pt-BR',{minimumFractionDigits:1})+'%':'—'}</td>
+      <td class="vr">${s.ordens}</td><td class="vr">${s.solicitacoes}</td><td class="vr">${s.cotacoes}</td>
+      <td class="vr">${brl(media)}</td><td>${delta}</td></tr>`;
+  }).join('');
+  document.getElementById('btnOrdemCons').textContent = consOrdemAsc ? '↓ Sem.1→N' : '↑ Sem.N→1';
+}
+
+function toggleOrdemCons() {
+  consOrdemAsc = !consOrdemAsc;
+  renderConsTable();
+}
+
+function toggleRankChart(tipo) {
+  if (!CONS_DATA) return;
+  if (tipo === 'obra') {
+    obraChartType = obraChartType === 'bar' ? 'donut' : 'bar';
+    const { obrasSort, maxObra } = CONS_DATA;
+    const el = document.getElementById('obraRank');
+    if (obraChartType === 'donut') {
+      el.innerHTML = `<div style="height:260px;"><canvas id="obraDonut"></canvas></div>`;
+      _obraChart = _makeDonut('obraDonut', obrasSort, _obraChart);
+    } else {
+      if (_obraChart) { _obraChart.destroy(); _obraChart = null; }
+      el.innerHTML = obrasSort.map(([nome,val],i)=>`<div class="rk-row"><div class="rk-name">${nome}</div><div class="rk-track"><div class="rk-fill" style="width:${val/maxObra*100}%;background:${CORES[i%CORES.length]};"></div></div><div class="rk-val">${brl(val)}</div></div>`).join('');
+    }
+    document.getElementById('btnObraChart').textContent = obraChartType === 'bar' ? '◑ Donut' : '▬ Barras';
+  } else {
+    fornChartType = fornChartType === 'bar' ? 'donut' : 'bar';
+    const { fornSort, maxForn } = CONS_DATA;
+    const el = document.getElementById('fornRank');
+    if (fornChartType === 'donut') {
+      el.innerHTML = `<div style="height:260px;"><canvas id="fornDonut"></canvas></div>`;
+      _fornChart = _makeDonut('fornDonut', fornSort, _fornChart);
+    } else {
+      if (_fornChart) { _fornChart.destroy(); _fornChart = null; }
+      el.innerHTML = fornSort.map(([forn,val],i)=>`<div class="rk-row"><div class="rk-name" style="width:200px;">${forn||'—'}</div><div class="rk-track"><div class="rk-fill" style="width:${val/maxForn*100}%;background:${CORES[i%CORES.length]};"></div></div><div class="rk-val">${brl(val)}</div></div>`).join('');
+    }
+    document.getElementById('btnFornChart').textContent = fornChartType === 'bar' ? '◑ Donut' : '▬ Barras';
+  }
+}
+
+// ═══════════════════════════════════════════════════
 //  RENDER CONSOLIDADO
 // ═══════════════════════════════════════════════════
 function renderCons() {
@@ -845,35 +935,25 @@ function renderCons() {
   crono.forEach(s=>Object.entries(s.obraMap||{}).forEach(([k,v])=>{obraAcum[k]=(obraAcum[k]||0)+v;}));
   const obrasSort=Object.entries(obraAcum).sort((a,b)=>b[1]-a[1]);
   const maxObra=obrasSort[0]?.[1]||1;
-  const obraRankHTML=obrasSort.map(([nome,val],i)=>
-    `<div class="rk-row"><div class="rk-name">${nome}</div><div class="rk-track"><div class="rk-fill" style="width:${val/maxObra*100}%;background:${CORES[i%CORES.length]};"></div></div><div class="rk-val">${brl(val)}</div></div>`
-  ).join('');
 
   // Ranking fornecedores
   const fornAcum={};
   crono.forEach(s=>(s.ocs||[]).forEach(o=>{fornAcum[o.forn]=(fornAcum[o.forn]||0)+o.valor;}));
   const fornSort=Object.entries(fornAcum).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const maxForn=fornSort[0]?.[1]||1;
+
+  // Salva dados para re-render parcial
+  CONS_DATA = { crono, descs, maxTot, obrasSort, maxObra, fornSort, maxForn };
+  obraChartType = 'bar'; fornChartType = 'bar';
+  if (_obraChart) { _obraChart.destroy(); _obraChart = null; }
+  if (_fornChart) { _fornChart.destroy(); _fornChart = null; }
+
+  const obraRankHTML=obrasSort.map(([nome,val],i)=>
+    `<div class="rk-row"><div class="rk-name">${nome}</div><div class="rk-track"><div class="rk-fill" style="width:${val/maxObra*100}%;background:${CORES[i%CORES.length]};"></div></div><div class="rk-val">${brl(val)}</div></div>`
+  ).join('');
   const fornRankHTML=fornSort.map(([forn,val],i)=>
     `<div class="rk-row"><div class="rk-name" style="width:200px;">${forn||'—'}</div><div class="rk-track"><div class="rk-fill" style="width:${val/maxForn*100}%;background:${CORES[i%CORES.length]};"></div></div><div class="rk-val">${brl(val)}</div></div>`
   ).join('');
-
-  // Tabela semanas
-  const tbodyHTML = crono.map((s,i)=>{
-    const desc=descs[i],brt=(s.descontos||[]).reduce((a,d)=>a+d.maiorPreco,0),pD=brt>0?desc/brt*100:0,media=s.totalOCs/s.ordens;
-    let delta='<span class="trend eq">—</span>';
-    if(i>0){const dif=s.totalOCs-crono[i-1].totalOCs,dp=crono[i-1].totalOCs>0?dif/crono[i-1].totalOCs*100:0,cls=dif>0?'up':dif<0?'dn':'eq';
-      delta=`<span class="trend ${cls}">${dif>0?'+':''}${dp.toLocaleString('pt-BR',{minimumFractionDigits:1})}%</span>`;}
-    const bw=Math.round(s.totalOCs/maxTot*80);
-    return `<tr>
-      <td class="mn bld">Sem.${i+1}</td>
-      <td style="font-size:11px;color:var(--text2);">${s.label}</td>
-      <td class="vr bld">${brl(s.totalOCs)}<span style="display:inline-block;height:5px;width:${bw}px;background:rgba(74,158,255,0.35);border-radius:2px;vertical-align:middle;margin-left:6px;"></span></td>
-      <td class="vr" style="color:var(--green);">${desc>0?brl(desc):'—'}</td>
-      <td class="vr" style="color:var(--green);">${pD>0?pD.toLocaleString('pt-BR',{minimumFractionDigits:1})+'%':'—'}</td>
-      <td class="vr">${s.ordens}</td><td class="vr">${s.solicitacoes}</td><td class="vr">${s.cotacoes}</td>
-      <td class="vr">${brl(media)}</td><td>${delta}</td></tr>`;
-  }).join('');
 
   document.getElementById('appContent').innerHTML = `
   <div class="page">
@@ -894,10 +974,13 @@ function renderCons() {
 
     <div class="sec">Comparativo semanal</div>
     <div class="card">
-      <div class="ct">Resumo por semana</div><div class="cs">Todas as semanas registradas</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div><div class="ct" style="margin-bottom:2px;">Resumo por semana</div><div class="cs" style="margin-bottom:0;">Todas as semanas registradas</div></div>
+        <button id="btnOrdemCons" class="btn btn-blue" style="font-size:10px;padding:4px 10px;" onclick="toggleOrdemCons()">↓ Sem.1→N</button>
+      </div>
       <table class="ct-tbl">
         <thead><tr><th>Sem.</th><th>Período</th><th class="vr">Total OCs</th><th class="vr">Desconto</th><th class="vr">%</th><th class="vr">OCs</th><th class="vr">Sol.</th><th class="vr">Cot.</th><th class="vr">Ticket médio</th><th>vs. anterior</th></tr></thead>
-        <tbody>${tbodyHTML}</tbody>
+        <tbody id="consTableBody"></tbody>
         <tfoot><tr>
           <td class="bld" style="padding:9px 0;font-size:11px;" colspan="2">ACUMULADO (${nS} semanas)</td>
           <td class="vr" style="padding:9px 0;color:var(--teal);font-family:var(--mono);font-size:12px;font-weight:700;">${brl(totOC)}</td>
@@ -912,13 +995,27 @@ function renderCons() {
       </table>
     </div>
 
-    <div class="g2">
-      <div class="card"><div class="ct">Ranking de obras · volume acumulado</div><div class="cs">R$ total em OCs por obra em todas as semanas</div><div id="obraRank" style="margin-top:4px;">${obraRankHTML}</div></div>
-      <div class="card"><div class="ct">Top fornecedores · volume acumulado</div><div class="cs">Top 10 por R$ total em OCs</div><div id="fornRank" style="margin-top:4px;">${fornRankHTML}</div></div>
+    <div class="g2" style="margin-top:14px;">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div><div class="ct" style="margin-bottom:2px;">Ranking de obras · volume acumulado</div><div class="cs" style="margin-bottom:0;">R$ total em OCs por obra em todas as semanas</div></div>
+          <button id="btnObraChart" class="btn btn-blue" style="font-size:10px;padding:4px 10px;" onclick="toggleRankChart('obra')">◑ Donut</button>
+        </div>
+        <div id="obraRank">${obraRankHTML}</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div><div class="ct" style="margin-bottom:2px;">Top fornecedores · volume acumulado</div><div class="cs" style="margin-bottom:0;">Top 10 por R$ total em OCs</div></div>
+          <button id="btnFornChart" class="btn btn-blue" style="font-size:10px;padding:4px 10px;" onclick="toggleRankChart('forn')">◑ Donut</button>
+        </div>
+        <div id="fornRank">${fornRankHTML}</div>
+      </div>
     </div>
 
     <div class="footer"><div>TB Engenharia e Construção · Consolidado</div><span>Dashboard Google Sheets v1.0</span></div>
   </div>`;
+
+  renderConsTable();
 
   Chart.defaults.color='#5a6370'; Chart.defaults.font.family="'DM Sans',sans-serif"; Chart.defaults.font.size=11;
   charts.evolOC = new Chart(document.getElementById('chEvolOC').getContext('2d'),{
