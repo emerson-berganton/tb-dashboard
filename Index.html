@@ -381,9 +381,14 @@ function splitCSVLine(line) {
 
 function toNum(s) {
   if (!s) return 0;
-  // Aceita tanto formato BR (1.234,56) quanto normal (1234.56)
-  const clean = String(s).replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.');
-  return parseFloat(clean) || 0;
+  let v = String(s).replace(/[R$\s]/g, '').trim();
+  if (!v) return 0;
+  // Formato BR: 26.180,00 → vírgula como decimal
+  if (v.includes(',')) {
+    v = v.replace(/\./g, '').replace(',', '.');
+  }
+  // Formato puro: 26180.00 → ponto como decimal, sem vírgula
+  return parseFloat(v) || 0;
 }
 
 // Agrupa rows em semanas e monta o array SEMANAS
