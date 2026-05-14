@@ -380,10 +380,15 @@ function splitCSVLine(line) {
 }
 
 function toNum(s) {
-  if (!s) return 0;
-  // Aceita tanto formato BR (1.234,56) quanto normal (1234.56)
-  const clean = String(s).replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.');
-  return parseFloat(clean) || 0;
+  if (s === null || s === undefined || s === '') return 0;
+  const str = String(s).replace(/[R$\s]/g, '').trim();
+  if (!str) return 0;
+  // Formato BR com vírgula decimal (ex: 26.180,73): remove pontos de milhar, troca vírgula por ponto
+  if (str.includes(',')) {
+    return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+  }
+  // Número já com ponto decimal (ex: 26180.73): parse direto
+  return parseFloat(str) || 0;
 }
 
 // Agrupa rows em semanas e monta o array SEMANAS
