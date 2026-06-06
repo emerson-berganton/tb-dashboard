@@ -1048,7 +1048,7 @@ function renderCons() {
       {label:'Acumulado',data:acumOC,type:'line',borderColor:'#2dd98f',backgroundColor:'rgba(45,217,143,0.07)',fill:true,pointBackgroundColor:'#2dd98f',pointRadius:4,tension:0.3,order:1},
       {label:'Média',data:mediaLineOC,type:'line',borderColor:'#f5a623',borderDash:[5,4],borderWidth:1.5,pointRadius:0,backgroundColor:'transparent',order:2},
     ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#5a6370',font:{size:10},boxWidth:9,padding:10}},tooltip:{callbacks:{label:ctx=>' '+brlK(ctx.parsed.y)}}},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,position:'bottom',labels:{color:'#5a6370',font:{size:10},boxWidth:9,padding:10}},tooltip:{callbacks:{label:ctx=>' '+brlK(ctx.parsed.y)}}},
       scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a6370',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true,ticks:{color:'#5a6370',font:{size:10},callback:v=>brlAx(v)}}}}
   });
   charts.evolDesc = new Chart(document.getElementById('chEvolDesc').getContext('2d'),{
@@ -1056,7 +1056,7 @@ function renderCons() {
       {label:'Desconto (R$)',data:descs,backgroundColor:descs.map(d=>d>0?'rgba(45,217,143,0.55)':'rgba(90,99,112,0.3)'),borderColor:descs.map(d=>d>0?'#2dd98f':'#5a6370'),borderWidth:1,borderRadius:5,order:2},
       {label:'Média',data:mediaLineDesc,type:'line',borderColor:'#f5a623',borderDash:[5,4],borderWidth:1.5,pointRadius:0,backgroundColor:'transparent',order:1},
     ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#5a6370',font:{size:10},boxWidth:9,padding:10}},tooltip:{callbacks:{label:ctx=>' '+brlK(ctx.parsed.y)}}},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,position:'bottom',labels:{color:'#5a6370',font:{size:10},boxWidth:9,padding:10}},tooltip:{callbacks:{label:ctx=>' '+brlK(ctx.parsed.y)}}},
       scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a6370',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true,ticks:{color:'#5a6370',font:{size:10},callback:v=>brlAx(v)}}}}
   });
 }
