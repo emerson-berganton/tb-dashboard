@@ -309,6 +309,10 @@ let consOrdemAsc = true;
 let obraChartType = 'bar', fornChartType = 'bar';
 let CONS_DATA = null;
 let _obraChart = null, _fornChart = null;
+let consMonthFilter = 'all';
+
+const MESES = {1:'Janeiro',2:'Fevereiro',3:'Março',4:'Abril',5:'Maio',6:'Junho',7:'Julho',8:'Agosto',9:'Setembro',10:'Outubro',11:'Novembro',12:'Dezembro'};
+function _semanaMonth(label) { return parseInt(label.split('-')[0].split('/')[1]); }
 
 function killCharts() {
   Object.values(charts).forEach(c => { try { c.destroy(); } catch(e) {} });
@@ -912,9 +916,17 @@ function toggleRankChart(tipo) {
 // ═══════════════════════════════════════════════════
 //  RENDER CONSOLIDADO
 // ═══════════════════════════════════════════════════
+function setMonthFilter(val) {
+  consMonthFilter = val;
+  renderCons();
+}
+
 function renderCons() {
   killCharts();
-  const crono = [...SEMANAS]; // já ordenado cronologicamente (mais antiga = índice 0)
+  const allCrono = [...SEMANAS]; // já ordenado cronologicamente (mais antiga = índice 0)
+  // Detecta meses disponíveis
+  const mesesDisp = [...new Set(allCrono.map(s => _semanaMonth(s.label)))].sort((a,b)=>a-b);
+  const crono = consMonthFilter === 'all' ? allCrono : allCrono.filter(s => _semanaMonth(s.label) === consMonthFilter);
   const totOC   = crono.reduce((a,s)=>a+s.totalOCs,0);
   const totDesc = crono.reduce((a,s)=>a+(s.descontos||[]).reduce((b,d)=>b+(d.maiorPreco-d.precoVenc),0),0);
   const totOrdens = crono.reduce((a,s)=>a+s.ordens,0);
@@ -957,7 +969,13 @@ function renderCons() {
 
   document.getElementById('appContent').innerHTML = `
   <div class="page">
-    <div class="sec">Visão consolidada · todas as semanas</div>
+    <div class="sec" style="justify-content:space-between;">
+      <span>Visão consolidada · ${consMonthFilter === 'all' ? 'todas as semanas' : MESES[consMonthFilter]}</span>
+      <select onchange="setMonthFilter(this.value==='all'?'all':parseInt(this.value))" style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:11px;padding:3px 8px;font-family:var(--mono);cursor:pointer;outline:none;">
+        <option value="all" ${consMonthFilter==='all'?'selected':''}>Todos os meses</option>
+        ${mesesDisp.map(m=>`<option value="${m}" ${consMonthFilter===m?'selected':''}>${MESES[m]}</option>`).join('')}
+      </select>
+    </div>
     <div class="cons-kg">
       <div class="kc ck"><div class="ki">◉</div><div class="kl">Total acumulado</div><div class="kv" style="font-size:16px;">${brlK(totOC)}</div><div class="ksub">${brlK(totOC/nS)} / semana</div></div>
       <div class="kc cg"><div class="ki">▲</div><div class="kl">Desconto acumulado</div><div class="kv" style="font-size:16px;">${brlK(totDesc)}</div><div class="ksub">${pDescGlobal.toLocaleString('pt-BR',{minimumFractionDigits:1})}% s/ bruto cotado</div></div>
