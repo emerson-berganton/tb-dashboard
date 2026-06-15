@@ -126,7 +126,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .dr{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);}
 .dr:last-child{border-bottom:none;}
 .dname{flex:1;min-width:0;}
-.do{font-size:10px;color:var(--text3);}
+.do{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .di{font-size:11px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .dbt{width:90px;}.dbt-bg{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;}
 .dbt-f{height:100%;border-radius:3px;}
@@ -422,12 +422,17 @@ function processarDados(compras, cotacoes, solicitacoes, descontos) {
 
     // Cotações por obra e status
     const obrasUnicas = [...new Set(cots.map(c=>c.obra).filter(Boolean))];
+    const isResp  = c => sit(c.situacao).includes('respondida') && !sit(c.situacao).includes('parcial');
+    const isParcial = c => sit(c.situacao).includes('parcial');
+    const isEnviada = c => sit(c.situacao).includes('enviada') || sit(c.situacao).includes('nova');
+    const isAberta  = c => sit(c.situacao).includes('aberta');
     const cotStatus = {
       labels:     obrasUnicas,
-      respondida: obrasUnicas.map(o => cots.filter(c=>c.obra===o && sit(c.situacao).includes('respondida') && !sit(c.situacao).includes('parcial')).length),
-      parcial:    obrasUnicas.map(o => cots.filter(c=>c.obra===o && sit(c.situacao).includes('parcial')).length),
-      enviada:    obrasUnicas.map(o => cots.filter(c=>c.obra===o && (sit(c.situacao).includes('enviada') || sit(c.situacao).includes('nova'))).length),
-      aberta:     obrasUnicas.map(o => cots.filter(c=>c.obra===o && sit(c.situacao).includes('aberta')).length),
+      respondida: obrasUnicas.map(o => cots.filter(c=>c.obra===o && isResp(c)).length),
+      parcial:    obrasUnicas.map(o => cots.filter(c=>c.obra===o && isParcial(c)).length),
+      enviada:    obrasUnicas.map(o => cots.filter(c=>c.obra===o && isEnviada(c)).length),
+      aberta:     obrasUnicas.map(o => cots.filter(c=>c.obra===o && isAberta(c)).length),
+      outros:     obrasUnicas.map(o => cots.filter(c=>c.obra===o && !isResp(c) && !isParcial(c) && !isEnviada(c) && !isAberta(c)).length),
     };
 
     // Pendências (solicitações não finalizadas)
@@ -796,6 +801,7 @@ function renderSemana(idx) {
       {label:'Parcial',    data:cp.parcial,    backgroundColor:'#4a9eff',borderRadius:3},
       {label:'Enviada',    data:cp.enviada,    backgroundColor:'#f5a623',borderRadius:3},
       {label:'Aberta',     data:cp.aberta,     backgroundColor:'#ff5e5e',borderRadius:3},
+      {label:'Outros',     data:cp.outros||[], backgroundColor:'#5a6370',borderRadius:3},
     ]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{
       legend:{display:true,position:'bottom',labels:{color:'#5a6370',font:{size:10},boxWidth:9,padding:10}},
