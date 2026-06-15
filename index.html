@@ -602,7 +602,11 @@ function renderSemana(idx) {
   const descAbs = bruto - venc;
   const descPctV = bruto>0 ? descAbs/bruto*100 : 0;
   const mediaOC = s.ordens>0 ? s.totalOCs/s.ordens : 0;
+  // % compras negociadas: OCs cujo num_oc aparece em alguma cotação com desconto mapeado
+  const cotsComDesconto = new Set(des.filter(d=>d.maiorPreco>d.precoVenc).map(d=>d.cotacao));
   const ocs = [...(s.ocs||[])].sort((a,b)=>b.valor-a.valor);
+  const ocsNegociadas = ocs.filter(o=>o.cot && cotsComDesconto.has(o.cot)).length;
+  const pctNegociadas = s.ordens>0 ? ocsNegociadas/s.ordens*100 : 0;
 
   // Comparação semana anterior
   let cmpHTML = '';
@@ -668,6 +672,7 @@ function renderSemana(idx) {
       <div class="kc ck"><div class="ki">◉</div><div class="kl">Total comprado</div><div class="kv" style="font-size:16px;">${brlK(s.totalOCs)}</div><div class="ksub">soma das OCs</div></div>
       <div class="kc cg"><div class="ki">▲</div><div class="kl">Desconto obtido</div><div class="kv" style="font-size:${des.length?'16px':'22px'};">${des.length?brlK(descAbs):'—'}</div><div class="ksub">${des.length?descPctV.toLocaleString('pt-BR',{minimumFractionDigits:1})+'% s/ cotações mapeadas':'sem mapa de cotação'}</div></div>
       <div class="kc cr"><div class="ki">◑</div><div class="kl">Ticket médio / OC</div><div class="kv" style="font-size:16px;">${brlK(mediaOC)}</div><div class="ksub">Mediana: ${brlK(s.mediana||0)}</div></div>
+      <div class="kc cg"><div class="ki">%</div><div class="kl">Compras negociadas</div><div class="kv">${pctNegociadas.toLocaleString('pt-BR',{maximumFractionDigits:0})}%</div><div class="ksub">${ocsNegociadas} de ${s.ordens} OCs com desconto mapeado</div></div>
     </div>
 
     <div class="sec">Funil operacional · volume por obra</div>
@@ -694,7 +699,7 @@ function renderSemana(idx) {
       <div class="card">
         <div class="ct">Desconto por cotação</div><div class="cs">Diferença maior preço vs. vencedor</div>
         <div class="bignr"><div class="bignr-v">${des.length?brlK(descAbs):'—'}</div><div class="bignr-l">total economizado nas cotações mapeadas</div></div>
-        ${descRowsHTML}
+        <div style="max-height:320px;overflow-y:auto;padding-right:4px;">${descRowsHTML}</div>
       </div>
       <div class="card">
         <div class="ct">% por cotação</div><div class="cs">Economia relativa</div>
