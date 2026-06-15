@@ -98,7 +98,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
 .g32{display:grid;grid-template-columns:3fr 2fr;gap:14px;}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:18px 20px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:18px 20px;overflow:hidden;}
 .ct{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);margin-bottom:3px;}
 .cs{font-size:10px;color:var(--text3);margin-bottom:16px;}
 .cw{position:relative;width:100%;}
@@ -699,7 +699,7 @@ function renderSemana(idx) {
       <div class="card">
         <div class="ct">Desconto por cotação</div><div class="cs">Diferença maior preço vs. vencedor</div>
         <div class="bignr"><div class="bignr-v">${des.length?brlK(descAbs):'—'}</div><div class="bignr-l">total economizado nas cotações mapeadas</div></div>
-        <div style="max-height:320px;overflow-y:auto;padding-right:4px;">${descRowsHTML}</div>
+        <div style="max-height:320px;overflow-y:auto;overflow-x:hidden;padding-right:4px;">${descRowsHTML}</div>
       </div>
       <div class="card">
         <div class="ct">% por cotação</div><div class="cs">Economia relativa</div>
