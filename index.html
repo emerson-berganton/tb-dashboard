@@ -369,8 +369,20 @@ function processarDados(compras, cotacoes, solicitacoes, descontos) {
   solicitacoes.forEach(r => { if (r.semana) semanasSet.add(r.semana); });
 
   // Ordena cronologicamente pelo início da semana (DD/MM)
+  // Ordena cronologicamente: assume que sequências que "voltam" mês (ex: Dez→Jan) cruzam o ano
   const parseSemana = s => { const [d, m] = s.split('-')[0].split('/'); return parseInt(m) * 100 + parseInt(d); };
-  const semanasOrdenadas = [...semanasSet].sort((a, b) => parseSemana(a) - parseSemana(b));
+  const raw = [...semanasSet].sort((a,b)=>parseSemana(a)-parseSemana(b));
+  // Detecta virada de ano: se a diferença de mês entre semanas consecutivas for grande (>6), houve virada
+  const ajustaAno = (arr) => {
+    const vals = arr.map(parseSemana);
+    const out = [...arr]; let offset = 0;
+    for(let i=1;i<vals.length;i++){
+      if(vals[i]+offset < vals[i-1]+offset) offset += 1200; // avança 12 meses (1200 em escala)
+      vals[i]+=offset;
+    }
+    return arr.map((_,i)=>({label:arr[i],val:vals[i]})).sort((a,b)=>a.val-b.val).map(x=>x.label);
+  };
+  const semanasOrdenadas = ajustaAno(raw);
 
   return semanasOrdenadas.map(sem => {
     const ocs    = compras.filter(r => r.semana === sem);
@@ -862,9 +874,11 @@ function renderConsTable() {
   const rows = consOrdemAsc ? crono : [...crono].reverse();
   document.getElementById('consTableBody').innerHTML = rows.map((s,ri)=>{
     const i = consOrdemAsc ? ri : crono.length - 1 - ri;
-    const desc=descs[i],brt=(s.descontos||[]).reduce((a,d)=>a+d.maiorPreco,0),pD=brt>0?desc/brt*100:0,media=s.totalOCs/s.ordens;
+    const desc=descs[i],brt=(s.descontos||[]).reduce((a,d)=>a+d.maiorPreco,0),pD=brt>0?desc/brt*100:0;
+    const media = s.ordens > 0 ? s.totalOCs / s.ordens : 0;
     let delta='<span class="trend eq">—</span>';
-    if(i>0){const dif=s.totalOCs-crono[i-1].totalOCs,dp=crono[i-1].totalOCs>0?dif/crono[i-1].totalOCs*100:0,cls=dif>0?'up':dif<0?'dn':'eq';
+    // delta compara com a linha visualmente anterior (não com crono[i-1])
+    if(ri>0){const prev=rows[ri-1];const dif=s.totalOCs-prev.totalOCs,dp=prev.totalOCs>0?dif/prev.totalOCs*100:0,cls=dif>0?'up':dif<0?'dn':'eq';
       delta=`<span class="trend ${cls}">${dif>0?'+':''}${dp.toLocaleString('pt-BR',{minimumFractionDigits:1})}%</span>`;}
     const bw=Math.round(s.totalOCs/maxTot*80);
     return `<tr>
@@ -1007,7 +1021,7 @@ function renderCons() {
           <td class="vr" style="padding:9px 0;font-family:var(--mono);font-size:12px;font-weight:700;">${totOrdens}</td>
           <td class="vr" style="padding:9px 0;font-family:var(--mono);">${totSol}</td>
           <td class="vr" style="padding:9px 0;font-family:var(--mono);">${crono.reduce((a,s)=>a+s.cotacoes,0)}</td>
-          <td class="vr" style="padding:9px 0;font-family:var(--mono);">${brl(totOC/totOrdens)}</td>
+          <td class="vr" style="padding:9px 0;font-family:var(--mono);">${totOrdens>0?brl(totOC/totOrdens):'—'}</td>
           <td></td>
         </tr></tfoot>
       </table>
