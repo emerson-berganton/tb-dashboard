@@ -233,7 +233,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
   <div class="hr">
     <div class="pill" id="hPer">—</div>
     <button class="btn btn-blue" onclick="recarregar()">↻ Atualizar dados</button>
-    <button class="btn btn-amber" onclick="abrirConfig()">⚙ URL da planilha</button>
   </div>
 </div>
 
@@ -798,8 +797,11 @@ function renderSemana(idx) {
       {label:'Enviada',    data:cp.enviada,    backgroundColor:'#f5a623',borderRadius:3},
       {label:'Aberta',     data:cp.aberta,     backgroundColor:'#ff5e5e',borderRadius:3},
     ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#5a6370',font:{size:10},boxWidth:9,padding:10}}},
-      scales:{x:{stacked:true,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a6370',maxRotation:25,font:{size:10}}},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{
+      legend:{display:true,position:'bottom',labels:{color:'#5a6370',font:{size:10},boxWidth:9,padding:10}},
+      tooltip:{callbacks:{title:items=>cp.labels[items[0].dataIndex]}}
+    },
+      scales:{x:{stacked:true,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a6370',maxRotation:0,font:{size:10},callback:(_,i)=>{const l=cp.labels[i]||'';return l.length>12?l.slice(0,12)+'…':l;}}},
               y:{stacked:true,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a6370',stepSize:1},beginAtZero:true}}}
   });
 
