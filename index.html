@@ -763,7 +763,7 @@ function renderSemana(idx) {
 
   // Obras donut
   charts.obras = new Chart(document.getElementById('chObras').getContext('2d'),{
-    type:'doughnut', data:{labels:obraNomes,datasets:[{data:obraVals,backgroundColor:CORES.slice(0,obraNomes.length),borderColor:'#13161b',borderWidth:3,hoverOffset:5}]},
+    type:'doughnut', data:{labels:obraNomes,datasets:[{data:obraVals,backgroundColor:CORES.slice(0,obraNomes.length),borderColor:'transparent',borderWidth:2,borderRadius:6,hoverOffset:6}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+brlK(ctx.parsed)+' ('+pct(ctx.parsed,s.totalOCs)+')' }}}}
   });
   document.getElementById('obTot').textContent = brlK(s.totalOCs);
@@ -778,7 +778,7 @@ function renderSemana(idx) {
   document.getElementById('dMax').textContent  = des.length?maiorPct.toLocaleString('pt-BR',{minimumFractionDigits:1})+'%':'—';
   if (des.length) {
     charts.disc = new Chart(document.getElementById('chDisc').getContext('2d'),{
-      type:'doughnut', data:{labels:des.map(d=>d.cotacao),datasets:[{data:des.map(d=>Math.max(d.maiorPreco-d.precoVenc,0)),backgroundColor:dcCores,borderColor:'#13161b',borderWidth:2}]},
+      type:'doughnut', data:{labels:des.map(d=>d.cotacao),datasets:[{data:des.map(d=>Math.max(d.maiorPreco-d.precoVenc,0)),backgroundColor:dcCores,borderColor:'transparent',borderWidth:2,borderRadius:6}]},
       options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+brlK(ctx.parsed)}}}}
     });
   }
@@ -821,7 +821,7 @@ function renderSemana(idx) {
   charts.oc = new Chart(document.getElementById('chOC').getContext('2d'),{
     type:'doughnut', data:{labels:['Gerada','Processada','Recebida','Outros'],
       datasets:[{data:[s.ordensGeradas,s.ordensProcessadas,s.ordensRecebidas,Math.max(s.ordens-s.ordensGeradas-s.ordensProcessadas-s.ordensRecebidas,0)],
-        backgroundColor:['#4a9eff','#a78bfa','#2dd98f','#f5a623'],borderColor:'#13161b',borderWidth:3}]},
+        backgroundColor:['#4a9eff','#a78bfa','#2dd98f','#f5a623'],borderColor:'transparent',borderWidth:2,borderRadius:6}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}
   });
   document.getElementById('rgrid').innerHTML=[
@@ -869,7 +869,7 @@ function _makeDonut(canvasId, items, chartRef) {
     type: 'doughnut',
     data: {
       labels: items.map(([n])=>n||'—'),
-      datasets: [{ data: items.map(([,v])=>v), backgroundColor: CORES.slice(0,items.length), borderWidth:0, hoverOffset:8 }]
+      datasets: [{ data: items.map(([,v])=>v), backgroundColor: CORES.slice(0,items.length), borderWidth:2, borderColor:'transparent', borderRadius:6, hoverOffset:8 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
